@@ -246,7 +246,7 @@ final scoreRaw = row[2]?.value != null ? row[2]!.value.toString().trim() : '';
       appBar: AppBar(
         backgroundColor: navy,
         title: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Grade Calculator Pro', style: TextStyle(color: gold, fontWeight: FontWeight.bold, fontSize: 18)),
+          Text('Grade Calculator — Kozobo Sarah', style: TextStyle(color: gold, fontWeight: FontWeight.bold, fontSize: 18)),
           Text('SE 3242 — ICT University', style: TextStyle(color: Colors.white54, fontSize: 11)),
         ]),
         actions: [Container(
