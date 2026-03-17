@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' hide Border;
@@ -169,6 +171,72 @@ final scoreRaw = row[2]?.value != null ? row[2]!.value.toString().trim() : '';
     });
     _nameCtrl.clear(); _scoreCtrl.clear();
     _showSnack('✓ Étudiant ajouté', Colors.green);
+  }
+  // ── Export Excel ───────────────────────────────────────────
+  Future<void> _exportExcel() async {
+    if (!_calculated) {
+      _showSnack('Calculez d\'abord les grades', Colors.orange);
+      return;
+    }
+    final excel = Excel.createExcel();
+    final sheet = excel.sheets[excel.sheets.keys.first]!;
+   sheet.appendRow(['Nom', 'Matière', 'Note', 'Grade', 'Appréciation']);
+    for (final r in _results) {
+     sheet.appendRow([
+        r.student.name,
+        r.student.subject,
+        r.student.score != null ? '${r.student.score}/100' : 'N/A',
+        r.grade ?? '—',
+        r.appreciation ?? 'Aucune donnée',
+      ]);
+
+    }
+    final bytes = excel.encode();
+    if (bytes == null) return;
+    final blob   = html.Blob([bytes]);
+    final url    = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement()
+  ..href = url
+  ..download = 'grades_report.xlsx'
+  ..style.display = 'none';
+html.document.body!.append(anchor);
+anchor.click();
+anchor.remove();
+
+    html.Url.revokeObjectUrl(url);
+    _showSnack('✓ Excel téléchargé !', Colors.green);
+  }
+
+  // ── Export JSON ────────────────────────────────────────────
+  Future<void> _exportJSON() async {
+    if (!_calculated) {
+      _showSnack('Calculez d\'abord les grades', Colors.orange);
+      return;
+    }
+    final data = {
+      'generated_at': DateTime.now().toIso8601String(),
+      'total': _results.length,
+      'students': _results.map((r) => {
+        'name':         r.student.name,
+        'subject':      r.student.subject,
+        'score':        r.student.score,
+        'grade':        r.grade,
+        'appreciation': r.appreciation,
+      }).toList(),
+    };
+    final jsonStr = const JsonEncoder.withIndent('  ').convert(data);
+    final bytes   = utf8.encode(jsonStr);
+    final blob    = html.Blob([bytes]);
+    final url     = html.Url.createObjectUrlFromBlob(blob);
+    final anchor = html.AnchorElement()
+  ..href = url
+  ..download = 'grades_report.json'
+  ..style.display = 'none';
+html.document.body!.append(anchor);
+anchor.click();
+anchor.remove();
+    html.Url.revokeObjectUrl(url);
+    _showSnack('✓ JSON téléchargé !', Colors.green);
   }
 
   Future<void> _exportPDF() async {
@@ -433,6 +501,38 @@ final scoreRaw = row[2]?.value != null ? row[2]!.value.toString().trim() : '';
             label: const Text('Télécharger le Rapport PDF'),
             style: ElevatedButton.styleFrom(backgroundColor: gold, foregroundColor: navy, padding: const EdgeInsets.symmetric(vertical: 14), textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
           )),
+          const SizedBox(height: 10),
+Row(children: [
+  Expanded(
+    child: ElevatedButton.icon(
+      onPressed: _exportExcel,
+      icon: const Icon(Icons.table_chart),
+      label: const Text('Télécharger Excel'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1E8449),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+  ),
+  const SizedBox(width: 10),
+  Expanded(
+    child: ElevatedButton.icon(
+      onPressed: _exportJSON,
+      icon: const Icon(Icons.code),
+      label: const Text('Télécharger JSON'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF1A5276),
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
+  ),
+]),
         ]),
       ),
     );
